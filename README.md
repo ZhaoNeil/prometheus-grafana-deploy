@@ -6,8 +6,8 @@ A simple Python3 executable & library to setup Prometheus monitoring on remote c
 ## Usage
 Once this project is installed, a `rados-deploy-monitor` CLI program becomes available.
 It can perform several commands:
- 1. `rados-deploy install` allows us to install RADOS-Ceph on remote nodes.
- 2. `rados-deploy start/stop/restart` allos us to start/stop/restart RADOS-Ceph on remote nodes.
+ 1. `rados-deploy install` allows us to install Prometheus on remote nodes.
+ 2. `rados-deploy start/stop/restart` allos us to start/stop/restart Prometheus on remote nodes.
 
 
 For more information, optional arguments etc use:
