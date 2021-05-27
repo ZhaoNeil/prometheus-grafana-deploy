@@ -97,4 +97,8 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
         if not all(x.result() for x in futures_exporter_start):
             return False, None
 
-    return _start_prometheus_admin(connectionwrappers[admin_picked], prometheus_start_module, install_dir, reservation, port=port, silent=silent), admin_picked.node_id
+    if not _start_prometheus_admin(connectionwrappers[admin_picked], prometheus_start_module, install_dir, reservation, port=port, silent=silent):
+        return False, None
+    else:
+        prints('Prometheus started on all nodes.')
+        return True, admin_picked.node_id

@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 import rados_deploy_monitor
 
+import rados_deploy_monitor.internal.defaults.install as install_defaults
+
+
 def _get_modules():
     import rados_deploy_monitor.cli.install as install
     import rados_deploy_monitor.cli.start as start
@@ -19,7 +22,7 @@ def _get_modules():
 
 def generic_args(parser):
     '''Configure arguments important for all modules (install, uninstall, start, stop) here.'''
-    parser.add_argument('--install_dir', metavar='path', type=str, default='./deps/', help='Installation directory for Prometheus, for all remote machines. Note: The home directory of the remote machines is prepended to this path if it is relative.')
+    parser.add_argument('--install_dir', metavar='path', type=str, default=install_defaults.install_dir(), help='Installation directory for Prometheus, for all remote machines. Note: The home directory of the remote machines is prepended to this path if it is relative.')
     parser.add_argument('--key-path', dest='key_path', type=str, default=None, help='Path to ssh key to access nodes.')
 
 

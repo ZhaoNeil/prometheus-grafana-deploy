@@ -12,19 +12,19 @@
 ################################################################################
 
 
-import os
 import urllib.request
-import shutil
-import socket
-import configparser
-import sys
-import subprocess
-import zipfile
 import builtins
+import zipfile
+import sys
+import configparser
 import tempfile
+import socket
+import os
+import subprocess
+import shutil
+from pathlib import Path
 from enum import Enum
 from zipfile import ZipFile, ZipInfo
-from pathlib import Path
 ################################################################################
 # Created from file /home/radon/uni/mrp/reps/meta/rados-deploy-monitor/rados_deploy_monitor/internal/util/fs.py
 # This file contains many functions to help interact 
@@ -296,7 +296,7 @@ def _download_url(location, url, name='unspecified', silent=False, retries=5):
     Returns:
         `True` on success, `False` otherwise.'''
     with tempfile.TemporaryDirectory() as tmpdir: # We use a tempfile to store the downloaded archive.
-        archiveloc = join(tmpdir, 'archive.zip')
+        archiveloc = join(tmpdir, url.split('/')[-1])
         if not silent:
             print('Fetching Prometheus node exporter from {}'.format(url))
         for x in range(retries):
@@ -327,16 +327,21 @@ def _download_url(location, url, name='unspecified', silent=False, retries=5):
             printe('Could not extract {} zip file correctly, url={}. {}'.format(name, url, e))
             return False
 def install_prometheus_node_exporter(location, node_exporter_url, force_reinstall, silent, retries):
-    if (not force_reinstall) and isfile(join(location, 'node_exporter')):
+    location = os.path.expanduser(location)
+    if (not force_reinstall) and isfile(join(location, 'node_exporter')) and isfile('/usr/bin/node_exporter') and isfile('/etc/systemd/system/node_exporter.service'):
+        prints('Acceptable node exporter installation detected.')
         return True
     rm(location, ignore_errors=True)
     mkdir(location)
-    if not _download_url(location, node_exporter_url, name='Prometheus node exporter', silent=silent, retries=retries):
+    if (not isfile(location, 'node_exporter')) and not _download_url(location, node_exporter_url, name='Prometheus node exporter', silent=silent, retries=retries):
         return False
-    if not subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'node_exporter')), shell=True) != 0:
+    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'node_exporter')), shell=True) != 0:
+        printe('Could not copy {} to /usr/bin. Location exists: {}'.format(join(location, 'node_exporter'), isfile(location, 'node_exporter')))
+        print(str(socket.gethostname()))
+        printe('cmd={}'.format('sudo cp {} /usr/bin'.format(join(location, 'node_exporter'))))
         return False
     cmd = """sudo python3 -c "
-with open('/etc/systemd/system/node_exporter.service') as f:
+with open('/etc/systemd/system/node_exporter.service', 'w') as f:
     f.write('''
 [Unit]
 Description=Node Exporter
@@ -351,19 +356,26 @@ exit(0)
 "
 """
     if subprocess.call(cmd, shell=True) != 0:
+        printe('Could not write systemd config.')
         return False
-    return subprocess.call('sudo systemctl daemon-reload', shell=True) == 0
+    if subprocess.call('sudo systemctl daemon-reload', shell=True) != 0:
+        printe('Could not reload daemons.')
+        return False
+    return True
 def install_prometheus_admin(location, node_admin_url, force_reinstall, silent, retries):
-    if (not force_reinstall) and isfile(join(location, 'prometheus')):
+    location = os.path.expanduser(location)
+    if (not force_reinstall) and isfile(join(location, 'prometheus')) and isfile('/usr/bin/prometheus') and isfile('/etc/systemd/system/prometheus.service'):
+        prints('Acceptable admin installation detected.')
         return True
     rm(location, ignore_errors=True)
     mkdir(location)
-    if not _download_url(location, node_admin_url, name='Prometheus admin url', silent=silent, retries=retries):
+    if (not isfile(location, 'prometheus')) and not _download_url(location, node_admin_url, name='Prometheus admin url', silent=silent, retries=retries):
         return False
-    if not subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'prometheus')), shell=True) != 0:
+    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'prometheus')), shell=True) != 0:
+        printe('Could not copy {} to /usr/bin'.format(join(location, 'prometheus')))
         return False
     cmd = """sudo python3 -c "
-with open('/etc/systemd/system/node_exporter.service') as f:
+with open('/etc/systemd/system/prometheus.service', 'w') as f:
     f.write('''
 [Unit]
 Description=Prometheus
@@ -380,8 +392,12 @@ exit(0)
 "
 """.format(join(location, 'config.yml'))
     if subprocess.call(cmd, shell=True) != 0:
+        printe('Could not write admin systemd config.')
         return False
-    return subprocess.call('sudo systemctl daemon-reload', shell=True) == 0
+    if subprocess.call('sudo systemctl daemon-reload', shell=True) != 0:
+        printe('Could not reload daemons.')
+        return False
+    return True
 ################################################################################
 
 

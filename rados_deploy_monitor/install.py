@@ -22,6 +22,7 @@ def _install_prometheus_node_exporter(connection, module, install_dir, node_expo
 
 
 def _install_prometheus_admin(connection, module, install_dir, prometheus_url=defaults.prometheus_url(), force_reinstall=False, silent=False, retries=defaults.retries()):
+    remote_module = connection.import_module(module)
     if not remote_module.install_prometheus_admin(loc.prometheus_admindir(install_dir), prometheus_url, force_reinstall, silent, retries):
         printe('Could not install Prometheus admin on some node(s).')
         return False
@@ -98,4 +99,7 @@ def install(reservation, install_dir=defaults.install_dir(), key_path=None, admi
         if not all(x.result() for x in futures_exporter_install):
             return False, None
 
-    return _install_prometheus_admin(connectionwrappers[admin_picked], prometheus_install_module, install_dir, prometheus_url=defaults.prometheus_url(), force_reinstall=force_reinstall, silent=silent, retries=retries), admin_picked.node_id
+    if not _install_prometheus_admin(connectionwrappers[admin_picked].connection, prometheus_install_module, install_dir, prometheus_url=defaults.prometheus_url(), force_reinstall=force_reinstall, silent=silent, retries=retries):
+        return False, None
+    prints('Prometheus installed on all nodes.')
+    return True, admin_picked.node_id

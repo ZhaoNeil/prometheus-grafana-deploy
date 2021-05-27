@@ -1,5 +1,5 @@
 def install_dir():
-    return './deps'
+    return '~/deps'
 
 def node_exporter_url():
     return 'https://github.com/prometheus/node_exporter/releases/download/v1.1.2/node_exporter-1.1.2.linux-amd64.tar.gz'
