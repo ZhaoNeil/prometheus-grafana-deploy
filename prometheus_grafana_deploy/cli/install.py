@@ -1,6 +1,6 @@
-import rados_deploy_monitor.internal.defaults.install as defaults
-import rados_deploy_monitor.cli.util as _cli_util
-from rados_deploy_monitor.install import install as _install
+import prometheus_grafana_deploy.internal.defaults.install as defaults
+import prometheus_grafana_deploy.cli.util as _cli_util
+from prometheus_grafana_deploy.install import install as _install
 
 
 '''CLI module to install Prometheus on a cluster.'''

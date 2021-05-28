@@ -1,30 +1,19 @@
-# RADOS-deploy-monitor
+# Prometheus-Grafana-deploy
 A simple Python3 executable & library to setup Prometheus monitoring on remote clusters.
-
+Also launches a Grafana instance to view resource utilization on.
 
 
 ## Usage
-Once this project is installed, a `rados-deploy-monitor` CLI program becomes available.
+Once this project is installed, a `grafana-monitor` CLI program becomes available.
 It can perform several commands:
- 1. `rados-deploy install` allows us to install Prometheus on remote nodes.
- 2. `rados-deploy start/stop/restart` allos us to start/stop/restart Prometheus on remote nodes.
+ 1. `grafana-monitor install` allows us to install Prometheus+Grafana on remote nodes.
+ 2. `grafana-monitor start/stop` allos us to start/stop Prometheus+Grafana on remote nodes.
 
 
 For more information, optional arguments etc use:
 ```bash
-rados-deploy-monitor -h
+grafana-monitor -h
 ```
-
-### Library Usage
-Every CLI command is just a wrapper to a function performing the actual work.
-Where the CLI might use `rados-deploy-monitor stop <args>`, you can use
-```python
-from rados_deploy_monitor import stop
-stop(...)
-```
-Check the Python source files in the root of [`rados-deploy-monitor`](/rados-deploy-monitor).
-There, `stop.py` contains the `stop` function, `start.py` has the `start` function, etc.
-
 
 ### Reservation Strings
 Each command asks the user to provide the reservation string of the cluster to work with.

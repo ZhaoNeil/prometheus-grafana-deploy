@@ -4,8 +4,8 @@ import re
 import sys
 import types
 
-import rados_deploy_monitor.internal.util.fs as fs
-from rados_deploy_monitor.internal.util.printer import *
+import prometheus_grafana_deploy.internal.util.fs as fs
+from prometheus_grafana_deploy.internal.util.printer import *
 
 
 def _generate_stl_libs():

@@ -8,15 +8,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) # Appends main project root as importpath.
 
-import rados_deploy_monitor
+import prometheus_grafana_deploy
 
-import rados_deploy_monitor.internal.defaults.install as install_defaults
+import prometheus_grafana_deploy.internal.defaults.install as install_defaults
 
 
 def _get_modules():
-    import rados_deploy_monitor.cli.install as install
-    import rados_deploy_monitor.cli.start as start
-    import rados_deploy_monitor.cli.stop as stop
+    import prometheus_grafana_deploy.cli.install as install
+    import prometheus_grafana_deploy.cli.start as start
+    import prometheus_grafana_deploy.cli.stop as stop
     return [install, start, stop]
 
 

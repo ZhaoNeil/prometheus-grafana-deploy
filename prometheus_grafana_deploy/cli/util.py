@@ -1,5 +1,5 @@
 from metareserve import Reservation as _Reservation
-from rados_deploy_monitor.internal.util.printer import *
+from prometheus_grafana_deploy.internal.util.printer import *
 
 def read_reservation_cli():
     '''Read `MetaReserve.Reservation` from user input.'''

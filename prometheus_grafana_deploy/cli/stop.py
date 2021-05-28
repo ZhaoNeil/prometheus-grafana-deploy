@@ -1,5 +1,5 @@
-import rados_deploy_monitor.cli.util as _cli_util
-from rados_deploy_monitor.stop import stop as _stop
+import prometheus_grafana_deploy.cli.util as _cli_util
+from prometheus_grafana_deploy.stop import stop as _stop
 
 
 '''CLI module to stop a running Prometheus cluster.'''

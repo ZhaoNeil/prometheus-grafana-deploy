@@ -3,14 +3,14 @@ import hashlib
 import subprocess
 import tempfile
 
-import rados_deploy_monitor.internal.defaults.install as install_defaults
-import rados_deploy_monitor.internal.defaults.start as start_defaults
-from rados_deploy_monitor.internal.remoto.modulegenerator import ModuleGenerator
-from rados_deploy_monitor.internal.remoto.util import get_ssh_connection as _get_ssh_connection
-import rados_deploy_monitor.internal.util.fs as fs
-import rados_deploy_monitor.internal.util.importer as importer
-import rados_deploy_monitor.internal.util.location as loc
-from rados_deploy_monitor.internal.util.printer import *
+import prometheus_grafana_deploy.internal.defaults.install as install_defaults
+import prometheus_grafana_deploy.internal.defaults.start as start_defaults
+from prometheus_grafana_deploy.internal.remoto.modulegenerator import ModuleGenerator
+from prometheus_grafana_deploy.internal.remoto.util import get_ssh_connection as _get_ssh_connection
+import prometheus_grafana_deploy.internal.util.fs as fs
+import prometheus_grafana_deploy.internal.util.importer as importer
+import prometheus_grafana_deploy.internal.util.location as loc
+from prometheus_grafana_deploy.internal.util.printer import *
 
 
 def _stop_prometheus_node_exporter(connection, module, install_dir, silent=False):

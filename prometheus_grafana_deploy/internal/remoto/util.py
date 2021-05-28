@@ -3,9 +3,9 @@ import tempfile
 
 import remoto
 import logging
-from rados_deploy_monitor.internal.remoto.ssh_wrapper import RemotoSSHWrapper
-from rados_deploy_monitor.thirdparty.sshconf import *
-from rados_deploy_monitor.internal.util.printer import *
+from prometheus_grafana_deploy.internal.remoto.ssh_wrapper import RemotoSSHWrapper
+from prometheus_grafana_deploy.thirdparty.sshconf import *
+from prometheus_grafana_deploy.internal.util.printer import *
 
 def _get_logger(loggername, loglevel):
     # logging.basicConfig()

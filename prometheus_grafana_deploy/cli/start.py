@@ -1,11 +1,11 @@
-import rados_deploy_monitor.cli.util as _cli_util
+import prometheus_grafana_deploy.cli.util as _cli_util
 
 
-import rados_deploy_monitor.internal.defaults.start as defaults
-import rados_deploy_monitor.internal.defaults.install as install_defaults
+import prometheus_grafana_deploy.internal.defaults.start as defaults
+import prometheus_grafana_deploy.internal.defaults.install as install_defaults
 
-from rados_deploy_monitor.internal.util.printer import *
-from rados_deploy_monitor.start import start as _start
+from prometheus_grafana_deploy.internal.util.printer import *
+from prometheus_grafana_deploy.start import start as _start
 
 
 '''CLI module to start Prometheus on a cluster.'''
