@@ -31,7 +31,7 @@ def _start_prometheus_admin(connection, module, install_dir, reservation, port=d
         return False
     return True
 
-def _start_grafana(connection, module, name=defaults.grafana_name(), port=defaults.prometheus_port(), image=install_defaults.grafana_image(), silent=False):
+def _start_grafana(connection, module, name=defaults.grafana_name(), port=defaults.grafana_port(), image=install_defaults.grafana_image(), silent=False):
     remote_module = connection.import_module(module)
     if not remote_module.start_grafana(name, image, port, silent):
         printe('Could not start Grafana.')
