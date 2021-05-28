@@ -18,6 +18,8 @@ def dash(reservation, generator_names, output_names=[defaults.generated_dir()]):
         else:
             output_names = [output_names[0] for _ in range(len(generator_names))]
     generators = dict()
+    fs.mkdir(defaults.generated_dir(), exist_ok=True)
+
     for name in generator_names:
         if (not fs.isfile(loc.generators_dir(), name)) and not name.endswith('.py'):
             name = name+'.py'
