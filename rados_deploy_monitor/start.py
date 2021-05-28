@@ -23,21 +23,31 @@ def _start_prometheus_node_exporter(connection, module, install_dir, silent=Fals
 
 
 def _start_prometheus_admin(connection, module, install_dir, reservation, port=defaults.prometheus_port(), silent=False):
+    remote_module = connection.import_module(module)
+
     hostlist = ['{}:{}'.format(x.ip_public, port) for x in reservation.nodes]
     if not remote_module.start_prometheus_admin(loc.prometheus_admindir(install_dir), hostlist,  silent):
         printe('Could not start Prometheus admin on some node(s).')
         return False
     return True
 
+def _start_grafana(connection, module, name=defaults.grafana_name(), port=defaults.prometheus_port(), image=install_defaults.grafana_image(), silent=False):
+    remote_module = connection.import_module(module)
+    if not remote_module.start_grafana(name, image, port, silent):
+        printe('Could not start Grafana.')
+        return False
+    return True
 
-def _generate_module_prometheus_start(silent=False):
+
+def _generate_module_start(silent=False):
     '''Generates Prometheus-start module from available sources.'''
-    generation_loc = fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'generated', 'prometheus_start.py')
+    generation_loc = fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'generated', 'all_start.py')
     files = [
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'util', 'printer.py'),
+        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'util.py'),
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'printer.py'),
-        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'env.py'),
-        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'rados_start.py'),
+        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'prometheus_start.py'),
+        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'grafana_start.py'),
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'remoto_base.py'),
     ]
     ModuleGenerator().with_modules(fs, importer).with_files(*files).generate(generation_loc, silent)
@@ -68,14 +78,17 @@ def _merge_kwargs(x, y):
     return z
 
 
-def start(reservation, install_dir=install_defaults.install_dir(), key_path=None, admin_id=None, port=defaults.prometheus_port(), silent=False):
+def start(reservation, install_dir=install_defaults.install_dir(), key_path=None, admin_id=None, prometheus_port=defaults.prometheus_port(), grafana_name=defaults.grafana_name(), grafana_port=defaults.grafana_port(), grafana_image=install_defaults.grafana_image(), silent=False):
     '''Start Prometheus on remote cluster.
     Args:
         reservation (metareserve.Reservation): Reservation object with all nodes to start Prometheus on.
         install_dir (optional str): Location on remote host to store Prometheus in.
         key_path (optional str): Path to SSH key, which we use to connect to nodes. If `None`, we do not authenticate using an IdentityFile.
         admin_id (optional int): Node id of the admin. If `None`, the node with lowest public ip value (string comparison) will be picked.
-        port (optional int): Port to use with Prometheus.
+        prometheus_port (optional int): Port to use with Prometheus.
+        grafana_name (optional str): Grafana docker run name to use
+        grafana_port (optional int): Port to use with Grafana.
+        grafana_image (optional str): Grafana docker image to use.
         silent (optional bool): If set, does not print so much info.
 
     Returns:
@@ -83,7 +96,7 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
     admin_picked, _ = _pick_admin(reservation, admin=admin_id)
     printc('Picked admin node: {}'.format(admin_picked), Color.CAN)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)+2) as executor:
         ssh_kwargs = {'IdentitiesOnly': 'yes', 'StrictHostKeyChecking': 'no'}
         if key_path:
             ssh_kwargs['IdentityFile'] = key_path
@@ -92,13 +105,14 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
         futures_connection = {x: executor.submit(_get_ssh_connection, x.ip_public, silent=silent, ssh_params=_merge_kwargs(ssh_kwargs, {'User': x.extra_info['user']})) for x in reservation.nodes}
         connectionwrappers = {k: v.result() for k,v in futures_connection.items()}
 
-        prometheus_start_module = _generate_module_prometheus_start()
-        futures_exporter_start = [executor.submit(_start_prometheus_node_exporter, wrapper.connection, prometheus_start_module, install_dir, silent=silent) for wrapper in connectionwrappers.values()]
-        if not all(x.result() for x in futures_exporter_start):
-            return False, None
+        start_module = _generate_module_start()
+        futures_start = [executor.submit(_start_prometheus_node_exporter, wrapper.connection, start_module, install_dir, silent=silent) for wrapper in connectionwrappers.values()]
+        
+        futures_start.append(executor.submit(_start_prometheus_admin, connectionwrappers[admin_picked].connection, start_module, install_dir, reservation, port=prometheus_port, silent=silent))
+        
+        futures_start.append(executor.submit(_start_grafana, connectionwrappers[admin_picked].connection, start_module, name=grafana_name, port=grafana_port, image=grafana_image, silent=silent))
 
-    if not _start_prometheus_admin(connectionwrappers[admin_picked], prometheus_start_module, install_dir, reservation, port=port, silent=silent):
-        return False, None
-    else:
-        prints('Prometheus started on all nodes.')
+        if not all(x.result() for x in futures_start):
+            return False, None
+        prints('Prometheus+Grafana started on all nodes.')
         return True, admin_picked.node_id

@@ -53,11 +53,12 @@ def install_prometheus_node_exporter(location, node_exporter_url, force_reinstal
     if (not force_reinstall) and isfile(join(location, 'node_exporter')) and isfile('/usr/bin/node_exporter') and isfile('/etc/systemd/system/node_exporter.service'):
         prints('Acceptable node exporter installation detected.')
         return True
-    rm(location, ignore_errors=True)
-    mkdir(location)
+    if force_reinstall:
+        rm(location, ignore_errors=True)
+    mkdir(location, exist_ok=True)
     if (not isfile(location, 'node_exporter')) and not _download_url(location, node_exporter_url, name='Prometheus node exporter', silent=silent, retries=retries):
         return False
-    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'node_exporter')), shell=True) != 0:
+    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'node_exporter')), **get_subprocess_kwargs(silent)) != 0:
         printe('Could not copy {} to /usr/bin. Location exists: {}'.format(join(location, 'node_exporter'), isfile(location, 'node_exporter')))
         import socket
         print(str(socket.gethostname()))
@@ -80,10 +81,10 @@ WantedBy=multi-user.target
 exit(0)
 "
 """
-    if subprocess.call(cmd, shell=True) != 0:
+    if subprocess.call(cmd, **get_subprocess_kwargs(silent)) != 0:
         printe('Could not write systemd config.')
         return False
-    if subprocess.call('sudo systemctl daemon-reload', shell=True) != 0:
+    if subprocess.call('sudo systemctl daemon-reload', **get_subprocess_kwargs(silent)) != 0:
         printe('Could not reload daemons.')
         return False
     return True
@@ -94,12 +95,11 @@ def install_prometheus_admin(location, node_admin_url, force_reinstall, silent, 
     if (not force_reinstall) and isfile(join(location, 'prometheus')) and isfile('/usr/bin/prometheus') and isfile('/etc/systemd/system/prometheus.service'):
         prints('Acceptable admin installation detected.')
         return True
-    rm(location, ignore_errors=True)
-    mkdir(location)
+    mkdir(location, exist_ok=True)
 
     if (not isfile(location, 'prometheus')) and not _download_url(location, node_admin_url, name='Prometheus admin url', silent=silent, retries=retries):
         return False
-    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'prometheus')), shell=True) != 0:
+    if subprocess.call('sudo cp {} /usr/bin'.format(join(location, 'prometheus')), **get_subprocess_kwargs(silent)) != 0:
         printe('Could not copy {} to /usr/bin'.format(join(location, 'prometheus')))
         return False
     cmd = """sudo python3 -c "
@@ -119,10 +119,11 @@ WantedBy=multi-user.target
 exit(0)
 "
 """.format(join(location, 'config.yml'))
-    if subprocess.call(cmd, shell=True) != 0:
+    if subprocess.call(cmd, **get_subprocess_kwargs(silent)) != 0:
         printe('Could not write admin systemd config.')
         return False
-    if subprocess.call('sudo systemctl daemon-reload', shell=True) != 0:
+
+    if subprocess.call('sudo systemctl daemon-reload', **get_subprocess_kwargs(silent)) != 0:
         printe('Could not reload daemons.')
         return False
     return True

@@ -34,7 +34,8 @@ def _generate_module_prometheus_stop(silent=False):
     files = [
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'util', 'printer.py'),
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'printer.py'),
-        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'rados_stop.py'),
+        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'util.py'),
+        fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'prometheus_stop.py'),
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'remoto_base.py'),
     ]
     ModuleGenerator().with_modules(fs, importer).with_files(*files).generate(generation_loc, silent)

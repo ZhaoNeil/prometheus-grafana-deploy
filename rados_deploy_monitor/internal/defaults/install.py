@@ -7,5 +7,8 @@ def node_exporter_url():
 def prometheus_url():
     return 'https://github.com/prometheus/prometheus/releases/download/v2.26.0/prometheus-2.26.0.linux-amd64.tar.gz'
 
+def grafana_image():
+    return 'grafana/grafana'
+
 def retries():
     return 5
