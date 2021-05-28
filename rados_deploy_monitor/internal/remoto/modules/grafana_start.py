@@ -1,7 +1,7 @@
 import subprocess
 
 def start_grafana(instance_name, image, port, silent):
-    output = subprocess.check_output('sudo docker ps -f "name={0}" --format "{{{{.Names}}}}"'.format(instance_name), **get_subprocess_kwargs(True)).decode('utf-8').strip()
+    output = subprocess.check_output('sudo docker ps -f "name={0}" --format "{{{{.Names}}}}"'.format(instance_name), shell=True).decode('utf-8').strip()
     grafana_running = output == instance_name
     if grafana_running:
         prints('Running Grafana instance found.')

@@ -38,7 +38,7 @@ def _install_grafana(connection, module, image=defaults.grafana_image(), force_r
 
 def _generate_module_install(silent=False):
     '''Generates Prometheus-install module from available sources.'''
-    generation_loc = fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'generated', 'install_prometheus.py')
+    generation_loc = fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'generated', 'all_install.py')
     files = [
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'util', 'printer.py'),
         fs.join(fs.dirname(fs.abspath(__file__)), 'internal', 'remoto', 'modules', 'printer.py'),

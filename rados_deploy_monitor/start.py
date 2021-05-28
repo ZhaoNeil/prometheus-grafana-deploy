@@ -86,7 +86,7 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
         key_path (optional str): Path to SSH key, which we use to connect to nodes. If `None`, we do not authenticate using an IdentityFile.
         admin_id (optional int): Node id of the admin. If `None`, the node with lowest public ip value (string comparison) will be picked.
         prometheus_port (optional int): Port to use with Prometheus.
-        grafana_name (optional str): Grafana docker run name to use
+        grafana_name (optional str): Grafana docker run name to use.
         grafana_port (optional int): Port to use with Grafana.
         grafana_image (optional str): Grafana docker image to use.
         silent (optional bool): If set, does not print so much info.
