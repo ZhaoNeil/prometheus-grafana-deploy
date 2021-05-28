@@ -17,7 +17,9 @@ def _get_modules():
     import prometheus_grafana_deploy.cli.install as install
     import prometheus_grafana_deploy.cli.start as start
     import prometheus_grafana_deploy.cli.stop as stop
-    return [install, start, stop]
+
+    import prometheus_grafana_deploy.cli.dash as dash
+    return [install, start, stop, dash]
 
 
 def generic_args(parser):

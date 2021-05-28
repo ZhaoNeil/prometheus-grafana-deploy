@@ -1,5 +1,11 @@
 import os
 
+def rootdir():
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+def generators_dir():
+    return os.path.join(rootdir(), 'dashboard_generators')
+
 def prometheusdir(install_dir):
     '''Path to Prometheus node exporters installation directory.'''
     return os.path.join(install_dir, 'prometheus')

@@ -12,7 +12,7 @@ from prometheus_grafana_deploy.start import start as _start
 
 def subparser(subparsers):
     '''Register subparser modules'''
-    startparser = subparsers.add_parser('start', help='Start Prometheus on a cluster.')
+    startparser = subparsers.add_parser('start', help='Start Prometheus+Grafana on a cluster.')
     startparser.add_argument('--admin', metavar='id', dest='admin_id', type=int, default=None, help='ID of the node of the Prometheus admin node.')
     startparser.add_argument('--prometheus-port', metavar='number', type=int, default=defaults.prometheus_port(), help='Port to use for Prometheus.')
     startparser.add_argument('--grafana-name', metavar='name', dest='grafana_name', type=str, default=defaults.grafana_name(), help='Grafana docker run name to use (default={}).'.format(defaults.grafana_name()))
