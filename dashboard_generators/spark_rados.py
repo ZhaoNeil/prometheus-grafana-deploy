@@ -168,7 +168,7 @@ def generate_panel_client_cpu(config, client_nodes):
         ]+[
           {
             'exemplar': True,
-            'expr': '100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\\"node\\",mode=\\"idle\\",instance=\\"ms1243.utah.cloudlab.us:9100\\"}[1m])) * 10000)',
+            'expr': '100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\",instance=\"ms1243.utah.cloudlab.us:9100\"}[1m])) * 10000)',
             'interval': '',
             'legendFormat': '',
             'refId': 'A'
