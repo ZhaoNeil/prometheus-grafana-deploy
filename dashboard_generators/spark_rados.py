@@ -55,7 +55,7 @@ def _panel_axes():
     return {
         "xaxis": {"buckets": None, "mode": "time", "name": None, "show": True, "values": []},
         "yaxes": [
-          {"$$hashKey": "object:104", "format": "short", "label": None, "logBase": 1, "max": "100", "min": "0", "show": True},
+          {"$$hashKey": "object:104", "format": "percent", "label": None, "logBase": 1, "max": "100", "min": "0", "show": True},
           {"$$hashKey": "object:105", "format": "short", "label": None, "logBase": 1, "max": None, "min": None, "show": True}
         ],
         "yaxis": {"align": False, "alignLevel": None}
