@@ -13,6 +13,6 @@ def install_grafana(image, force_reinstall, silent):
             return False
     if force_reinstall or not has_grafana:
         if subprocess.call('sudo docker image pull {}'.format(image), **get_subprocess_kwargs(silent)) != 0:
-            printe('Could not fetch grafana/grafana image.')
+            printe('Could not fetch "{}" image.'.format(image))
             return False
     return True

@@ -107,3 +107,4 @@ def stop(reservation, install_dir=install_defaults.install_dir(), key_path=None,
         if not all(x.result() for x in futures_stop):
             return False
         prints('Prometheus+Grafana stopped on all nodes.')
+    return True

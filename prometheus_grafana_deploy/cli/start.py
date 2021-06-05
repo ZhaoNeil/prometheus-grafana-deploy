@@ -16,7 +16,7 @@ def subparser(subparsers):
     startparser.add_argument('--admin', metavar='id', dest='admin_id', type=int, default=None, help='ID of the node of the Prometheus admin node.')
     startparser.add_argument('--prometheus-port', metavar='number', type=int, default=defaults.prometheus_port(), help='Port to use for Prometheus.')
     startparser.add_argument('--grafana-name', metavar='name', dest='grafana_name', type=str, default=defaults.grafana_name(), help='Grafana docker run name to use (default={}).'.format(defaults.grafana_name()))
-    startparser.add_argument('--grafana-port', metavar='number', type=int, default=defaults.grafana_port(), help='Port to use for Grafana.')
+    startparser.add_argument('--grafana-port', metavar='number', type=int, default=defaults.grafana_port(), help='Port to use for Grafana (default={}).'.format(defaults.grafana_port()))
     startparser.add_argument('--grafana-image', metavar='image', dest='grafana_image', type=str, default=install_defaults.grafana_image(), help='Grafana docker image to use (default={}).'.format(install_defaults.grafana_image()))
     startparser.add_argument('--silent', help='If set, less boot output is shown.', action='store_true')
     return [startparser]

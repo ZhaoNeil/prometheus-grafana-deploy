@@ -26,7 +26,7 @@ scrape_configs:
   - targets: [
 {}
   ]
-'''.format('\n'.join('    {}'.format(host) for host in hostlist)))
+'''.format('\n'.join('    {},'.format(host) for host in hostlist)))
     if subprocess.call('sudo systemctl start prometheus', **get_subprocess_kwargs(silent)) != 0:
         return False
     return subprocess.call('sudo systemctl enable prometheus', **get_subprocess_kwargs(silent)) == 0

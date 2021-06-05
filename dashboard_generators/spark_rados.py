@@ -1,12 +1,15 @@
+import argparse
 import json
 import os
 
+import prometheus_grafana_deploy.internal.defaults.start as start_defaults
 from prometheus_grafana_deploy.internal.util.printer import *
+
 
 def basics():
     '''Basic top-level settings for our dashboard.'''
+        # 'annotations': {'list': [{'builtIn': 1, 'datasource': 'skyhook', 'enable': True, 'hide': True, 'iconColor': 'rgba(0, 211, 255, 1)', 'name': 'Annotations & Alerts', 'type': 'dashboard'}]},
     return {
-        'annotations': {'list': [{'builtIn': 1, 'datasource': 'skyhook', 'enable': True, 'hide': True, 'iconColor': 'rgba(0, 211, 255, 1)', 'name': 'Annotations & Alerts', 'type': 'dashboard'}]},
         'description': 'Dashboard showing CPU, Disk, and Network utilization of SkyhookDM',
         'editable': True,
         'gnetId': None,
@@ -96,7 +99,7 @@ def _panel_tooltip():
     return {"tooltip": {"shared": True, "sort": 0, "value_type": "individual"}}
 
 
-def generate_panel_ceph_cpu(config, ceph_nodes):
+def generate_panel_ceph_cpu(config, ceph_nodes, prometheus_port):
     '''Generates a panel displaying CPU utilization in Ceph.'''
     panel_config = {'id': 10, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}}
     _dict_append(panel_config, _panel_axes())
@@ -106,14 +109,17 @@ def generate_panel_ceph_cpu(config, ceph_nodes):
     _dict_append(panel_config, _panel_style())
     _dict_append(panel_config, _panel_time())
     _dict_append(panel_config, _panel_tooltip())
+
+    hostlist = ['{}:{}'.format(x.ip_public, prometheus_port) for x in ceph_nodes]
+    or_expr = '|'.join(host for host in hostlist)
     _dict_append(panel_config, {
         "targets": [
           {
             "exemplar": True,
-            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\",instance!=\"ms1243.utah.cloudlab.us:9100\"}[1m])) * 100)",
+            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{{job=\"node\",mode=\"idle\",instance=~\"{}\"}}[1m])) * 100)".format(or_expr),
             "interval": "",
             "legendFormat": "",
-            "refId": "A"
+            "refId": "Average"
           }
         ],
         "title": "Ceph CPU Usage (%)"
@@ -121,7 +127,7 @@ def generate_panel_ceph_cpu(config, ceph_nodes):
     config['panels'].append(panel_config)
 
 
-def generate_panel_ceph_storage(config, ceph_nodes):
+def generate_panel_ceph_storage(config, ceph_nodes, prometheus_port):
     '''Generates a panel displaying Ceph Storage I/O utilization.'''
     panel_config = {'id': 8, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}}
     _dict_append(panel_config, _panel_axes())
@@ -131,11 +137,14 @@ def generate_panel_ceph_storage(config, ceph_nodes):
     _dict_append(panel_config, _panel_style())
     _dict_append(panel_config, _panel_time())
     _dict_append(panel_config, _panel_tooltip())
+
+    hostlist = ['{}:{}'.format(x.ip_public, prometheus_port) for x in ceph_nodes]
+    or_expr = '|'.join(host for host in hostlist)
     _dict_append(panel_config, {
         "targets": [
           {
             "exemplar": True,
-            "expr": "rate(node_disk_read_bytes_total{device=\"nvme0n1\"}[5m])",
+            "expr": "rate(node_disk_read_bytes_total{{device=\"nvme0n1\", instance=~\"{}\"}}[5m])".format(or_expr),
             "interval": "",
             "legendFormat": "",
             "refId": "A"
@@ -146,7 +155,7 @@ def generate_panel_ceph_storage(config, ceph_nodes):
     config['panels'].append(panel_config)
 
 
-def generate_panel_client_cpu(config, client_nodes):
+def generate_panel_client_cpu(config, client_nodes, prometheus_port):
     '''Generates a panel displaying Client CPU utilization.'''
     panel_config = {'id': 2, 'gridPos': {'h': 8, 'w': 12, 'x': 0, 'y': 0}}
     _dict_append(panel_config, _panel_axes())
@@ -156,22 +165,17 @@ def generate_panel_client_cpu(config, client_nodes):
     _dict_append(panel_config, _panel_style())
     _dict_append(panel_config, _panel_time())
     _dict_append(panel_config, _panel_tooltip())
+
+    hostlist = ['{}:{}'.format(x.ip_public, prometheus_port) for x in client_nodes]
+    or_expr = '|'.join(host for host in hostlist)
     _dict_append(panel_config, {
         'targets': [
           {
             'exemplar': True,
-            'expr': 'rate(node_cpu_seconds_total{{job=\"node\",mode=\"idle\",instance=\"{0}:{1}\"}}[1m]))'.format(node.ip_public, node.port),
+            'expr': '100 - (avg by (instance) (rate(node_cpu_seconds_total{{job=\"node\",mode=\"idle\",instance=~\"{}\"}}[1m])) * 100)'.format(or_expr),
             'interval': '',
             'legendFormat': '',
-            'refId': '{}:{}'.format('client', node.hostname)
-          } for node in client_nodes
-        ]+[
-          {
-            'exemplar': True,
-            'expr': '100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\",instance=\"ms1243.utah.cloudlab.us:9100\"}[1m])) * 10000)',
-            'interval': '',
-            'legendFormat': '',
-            'refId': 'A'
+            'refId': 'avg'
           }
         ],
         'title': 'Client CPU Usage (%)'
@@ -179,7 +183,7 @@ def generate_panel_client_cpu(config, client_nodes):
     config['panels'].append(panel_config)
 
 
-def generate_panel_client_network(config, client_nodes):
+def generate_panel_client_network(config, client_nodes, prometheus_port):
     '''Generates a panel displaying Client network I/O utilization.'''
     panel_config = {'id': 6, 'gridPos': {'h': 8, 'w': 12, 'x': 12, 'y': 8}}
     _dict_append(panel_config, _panel_axes())
@@ -189,11 +193,14 @@ def generate_panel_client_network(config, client_nodes):
     _dict_append(panel_config, _panel_style())
     _dict_append(panel_config, _panel_time())
     _dict_append(panel_config, _panel_tooltip())
+
+    hostlist = ['{}:{}'.format(x.ip_public, prometheus_port) for x in client_nodes]
+    or_expr = '|'.join(host for host in hostlist)
     _dict_append(panel_config, {
         "targets": [
           {
             "exemplar": True,
-            "expr": "rate(node_network_receive_bytes_total{device=\"eno1d1\",instance=\"ms1243.utah.cloudlab.us:9100\"}[5m])",
+            "expr": "rate(node_network_receive_bytes_total{{device=\"eno1d1\",instance=~\"{}\"}}[5m])".format(or_expr),
             "interval": "",
             "legendFormat": "",
             "refId": "A"
@@ -204,16 +211,28 @@ def generate_panel_client_network(config, client_nodes):
     config['panels'].append(panel_config)
 
 
-def generate(reservation, outputloc):
+def parse(args):
+    parser = argparse.ArgumentParser(prog='...')
+    # We have no extra arguments to add here.
+    parser.add_argument('--prometheus-port', metavar='number', dest='prometheus_port', type=int, default=start_defaults.prometheus_port(), help='Port to use for Prometheus.')
+    args = parser.parse_args(args)
+    return True, [], {'prometheus_port': args.prometheus_port}
+
+
+
+
+def generate(reservation, outputloc, *args, **kwargs):
+    prometheus_port = kwargs.get('prometheus_port') or start_defaults.prometheus_port()
+
     config = basics()
 
     client_nodes = [x for x in reservation.nodes if not 'designations' in x.extra_info]
     ceph_nodes = [x for x in reservation.nodes if 'designations' in x.extra_info]
 
-    generate_panel_ceph_cpu(config, ceph_nodes)
-    generate_panel_ceph_storage(config, ceph_nodes)
-    generate_panel_client_cpu(config, client_nodes)
-    generate_panel_client_network(config, client_nodes)
+    generate_panel_ceph_cpu(config, ceph_nodes, prometheus_port)
+    generate_panel_ceph_storage(config, ceph_nodes, prometheus_port)
+    generate_panel_client_cpu(config, client_nodes, prometheus_port)
+    generate_panel_client_network(config, client_nodes, prometheus_port)
 
     if os.path.isdir(outputloc):
         outputloc = os.path.join(outputloc, 'spark_rados.json')
@@ -222,5 +241,5 @@ def generate(reservation, outputloc):
         printw('File already exists, overriding: {}'.format(outputloc))
 
     with open(outputloc, 'w') as f:
-        json.dump(config, f)
+        json.dump(config, f, ensure_ascii=False, indent=4)
     return True

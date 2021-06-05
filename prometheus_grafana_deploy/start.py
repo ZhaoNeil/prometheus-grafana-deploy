@@ -31,11 +31,13 @@ def _start_prometheus_admin(connection, module, install_dir, reservation, port=d
         return False
     return True
 
-def _start_grafana(connection, module, name=defaults.grafana_name(), port=defaults.grafana_port(), image=install_defaults.grafana_image(), silent=False):
+def _start_grafana(node, connection, module, name=defaults.grafana_name(), port=defaults.grafana_port(), image=install_defaults.grafana_image(), silent=False):
     remote_module = connection.import_module(module)
     if not remote_module.start_grafana(name, image, port, silent):
         printe('Could not start Grafana.')
         return False
+    printc('Grafana main started on http://{}:{}'.format(node.ip_public, port), Color.CAN)
+    print('NOTE: If this is your first time, user will be "admin", password will be "admin".')
     return True
 
 
@@ -110,7 +112,7 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
         
         futures_start.append(executor.submit(_start_prometheus_admin, connectionwrappers[admin_picked].connection, start_module, install_dir, reservation, port=prometheus_port, silent=silent))
         
-        futures_start.append(executor.submit(_start_grafana, connectionwrappers[admin_picked].connection, start_module, name=grafana_name, port=grafana_port, image=grafana_image, silent=silent))
+        futures_start.append(executor.submit(_start_grafana, admin_picked, connectionwrappers[admin_picked].connection, start_module, name=grafana_name, port=grafana_port, image=grafana_image, silent=silent))
 
         if not all(x.result() for x in futures_start):
             return False, None
