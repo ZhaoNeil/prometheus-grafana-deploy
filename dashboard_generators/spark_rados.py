@@ -50,15 +50,29 @@ def _dict_append(d0, d1):
     d0.update(d1)
 
 
-def _panel_axes():
-    '''Returns standard panel axis information for both x- and y-axes.'''
+def _panel_y_axis_cpu(minval=0, maxval=100):
+    '''Returns panel y axis information for CPU percentages.'''
     return {
-        "xaxis": {"buckets": None, "mode": "time", "name": None, "show": True, "values": []},
         "yaxes": [
-          {"$$hashKey": "object:104", "format": "percent", "label": None, "logBase": 1, "max": "100", "min": "0", "show": True},
+          {"$$hashKey": "object:104", "format": "binBps", "label": None, "logBase": 1, "max": maxval, "min": minval, "show": True},
           {"$$hashKey": "object:105", "format": "short", "label": None, "logBase": 1, "max": None, "min": None, "show": True}
         ],
         "yaxis": {"align": False, "alignLevel": None}
+    }
+
+def _panel_y_axis_byte_rate():
+    return {
+        "yaxes": [
+          {"$$hashKey": "object:104", "format": "percent", "label": None, "logBase": 1, "min": 0, "show": True},
+          {"$$hashKey": "object:105", "format": "short", "label": None, "logBase": 1, "max": None, "min": None, "show": True}
+        ],
+        "yaxis": {"align": False, "alignLevel": None}
+    }
+
+def _panel_x_axis():
+    '''Returns standard panel x axis information for the x-axis.'''
+    return {
+        "xaxis": {"buckets": None, "mode": "time", "name": None, "show": True, "values": []},
     }
 
 def _panel_legend():
@@ -102,7 +116,11 @@ def _panel_tooltip():
 def generate_panel_ceph_cpu(config, ceph_nodes, prometheus_port):
     '''Generates a panel displaying CPU utilization in Ceph.'''
     panel_config = {'id': 10, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}}
-    _dict_append(panel_config, _panel_axes())
+
+    axes_config = _panel_x_axis()
+    _dict_append(axes_config, _panel_y_axis_cpu(maxval=100*len(ceph_nodes)))
+
+    _dict_append(panel_config, axes_config)
     _dict_append(panel_config, _panel_legend())
     _dict_append(panel_config, _panel_lines())
     _dict_append(panel_config, _panel_misc())
@@ -130,7 +148,10 @@ def generate_panel_ceph_cpu(config, ceph_nodes, prometheus_port):
 def generate_panel_ceph_storage(config, ceph_nodes, prometheus_port):
     '''Generates a panel displaying Ceph Storage I/O utilization.'''
     panel_config = {'id': 8, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}}
-    _dict_append(panel_config, _panel_axes())
+    axes_config = _panel_x_axis()
+    _dict_append(axes_config, _panel_y_axis_byte_rate())
+
+    _dict_append(panel_config, axes_config)
     _dict_append(panel_config, _panel_legend())
     _dict_append(panel_config, _panel_lines())
     _dict_append(panel_config, _panel_misc())
@@ -158,7 +179,10 @@ def generate_panel_ceph_storage(config, ceph_nodes, prometheus_port):
 def generate_panel_client_cpu(config, client_nodes, prometheus_port):
     '''Generates a panel displaying Client CPU utilization.'''
     panel_config = {'id': 2, 'gridPos': {'h': 8, 'w': 12, 'x': 0, 'y': 0}}
-    _dict_append(panel_config, _panel_axes())
+    axes_config = _panel_x_axis()
+    _dict_append(axes_config, _panel_y_axis_cpu(maxval=100*len(client_nodes)))
+
+    _dict_append(panel_config, axes_config)
     _dict_append(panel_config, _panel_legend())
     _dict_append(panel_config, _panel_lines())
     _dict_append(panel_config, _panel_misc())
@@ -186,7 +210,10 @@ def generate_panel_client_cpu(config, client_nodes, prometheus_port):
 def generate_panel_client_network(config, client_nodes, prometheus_port):
     '''Generates a panel displaying Client network I/O utilization.'''
     panel_config = {'id': 6, 'gridPos': {'h': 8, 'w': 12, 'x': 12, 'y': 8}}
-    _dict_append(panel_config, _panel_axes())
+    axes_config = _panel_x_axis()
+    _dict_append(axes_config, _panel_y_axis_byte_rate())
+
+    _dict_append(panel_config, axes_config)
     _dict_append(panel_config, _panel_legend())
     _dict_append(panel_config, _panel_lines())
     _dict_append(panel_config, _panel_misc())
