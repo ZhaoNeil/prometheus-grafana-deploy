@@ -3,6 +3,8 @@ import hashlib
 import subprocess
 import tempfile
 
+import yaml
+
 import prometheus_grafana_deploy.internal.defaults.start as defaults
 import prometheus_grafana_deploy.internal.defaults.install as install_defaults
 from prometheus_grafana_deploy.internal.remoto.modulegenerator import ModuleGenerator
@@ -25,8 +27,28 @@ def _start_prometheus_node_exporter(connection, module, install_dir, silent=Fals
 def _start_prometheus_admin(connection, module, install_dir, reservation, port=defaults.prometheus_port(), silent=False):
     remote_module = connection.import_module(module)
 
-    hostlist = ['{}:{}'.format(x.ip_public, port) for x in reservation.nodes]
-    if not remote_module.start_prometheus_admin(loc.prometheus_admindir(install_dir), hostlist,  silent):
+    jobs = set(x.extra_info['job'] for x in reservation.nodes if 'job' in x.extra_info)
+    jobmapping = {x: ['{}:{}'.format(y.ip_public, port) for y in reservation.nodes if 'job' in y.extra_info and y.extra_info['job'] == x] for x in jobs}
+
+    if any(True for x in reservation.nodes if not 'job' in x.extra_info):
+        ignored_nodes = [x for x in reservation.nodes if not 'job' in x.extra_info]
+        printw('Ignoring metrics from {} nodes:\n{}'.format(len(ignored_nodes), '\n'.join('    {}'.format(x) for x in ignored_nodes)))
+        print('To get metrics for these nodes, describe their job. E.g. specify 0|node0|192.168.1.1|123.456.789.111|22|user=Tester|job=client')
+    if not any(jobmapping):
+        printe('No jobs specified, cancelling admin boot.')
+        return False
+
+    configdata = {
+        'global': {
+            'scrape_interval': '5s',
+            'evaluation_interval': '5s'
+        },
+        'scrape_configs': [
+            {'job_name': name, 'static_configs': [{'targets': jobmapping[name]}]} for name in jobmapping.keys()
+        ],
+    }
+    configstring = yaml.dump(configdata, default_flow_style=False)
+    if not remote_module.start_prometheus_admin(loc.prometheus_admindir(install_dir), configstring,  silent):
         printe('Could not start Prometheus admin on some node(s).')
         return False
     return True
