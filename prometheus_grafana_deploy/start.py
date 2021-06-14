@@ -8,7 +8,7 @@ import yaml
 import prometheus_grafana_deploy.internal.defaults.start as defaults
 import prometheus_grafana_deploy.internal.defaults.install as install_defaults
 from prometheus_grafana_deploy.internal.remoto.modulegenerator import ModuleGenerator
-from prometheus_grafana_deploy.internal.remoto.util import get_ssh_connection as _get_ssh_connection
+from prometheus_grafana_deploy.internal.remoto.ssh_wrapper import get_wrappers, close_wrappers
 import prometheus_grafana_deploy.internal.util.fs as fs
 import prometheus_grafana_deploy.internal.util.importer as importer
 import prometheus_grafana_deploy.internal.util.location as loc
@@ -102,13 +102,14 @@ def _merge_kwargs(x, y):
     return z
 
 
-def start(reservation, install_dir=install_defaults.install_dir(), key_path=None, admin_id=None, prometheus_port=defaults.prometheus_port(), grafana_name=defaults.grafana_name(), grafana_port=defaults.grafana_port(), grafana_image=install_defaults.grafana_image(), silent=False):
+def start(reservation, install_dir=install_defaults.install_dir(), key_path=None, admin_id=None, connectionwrappers=None, prometheus_port=defaults.prometheus_port(), grafana_name=defaults.grafana_name(), grafana_port=defaults.grafana_port(), grafana_image=install_defaults.grafana_image(), silent=False):
     '''Start Prometheus on remote cluster.
     Args:
         reservation (metareserve.Reservation): Reservation object with all nodes to start Prometheus on.
         install_dir (optional str): Location on remote host to store Prometheus in.
         key_path (optional str): Path to SSH key, which we use to connect to nodes. If `None`, we do not authenticate using an IdentityFile.
         admin_id (optional int): Node id of the admin. If `None`, the node with lowest public ip value (string comparison) will be picked.
+        connectionwrappers (optional dict(metareserve.Node, RemotoSSHWrapper)): If set, uses given connections, instead of building new ones.
         prometheus_port (optional int): Port to use with Prometheus.
         grafana_name (optional str): Grafana docker run name to use.
         grafana_port (optional int): Port to use with Grafana.
@@ -120,23 +121,32 @@ def start(reservation, install_dir=install_defaults.install_dir(), key_path=None
     admin_picked, _ = _pick_admin(reservation, admin=admin_id)
     printc('Picked admin node: {}'.format(admin_picked), Color.CAN)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)+2) as executor:
-        ssh_kwargs = {'IdentitiesOnly': 'yes', 'StrictHostKeyChecking': 'no'}
+    local_connections = connectionwrappers == None
+    if local_connections:
+        ssh_kwargs = {'IdentitiesOnly': 'yes', 'User': admin_picked.extra_info['user'], 'StrictHostKeyChecking': 'no'}
         if key_path:
             ssh_kwargs['IdentityFile'] = key_path
         else:
             printw('Connections have no assigned ssh key. Prepare to fill in your password often.')
-        futures_connection = {x: executor.submit(_get_ssh_connection, x.ip_public, silent=silent, ssh_params=_merge_kwargs(ssh_kwargs, {'User': x.extra_info['user']})) for x in reservation.nodes}
-        connectionwrappers = {k: v.result() for k,v in futures_connection.items()}
+        connectionwrappers = get_wrappers(reservation.nodes, lambda node: node.ip_public, ssh_params=ssh_kwargs, silent=silent)
 
+    if not all(x.open for x in connectionwrappers.values()):
+        if local_connections:
+            close_wrappers(connectionwrappers)
+        printe('Failed to create at least one connection.')
+        return False, None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)+2) as executor:
         start_module = _generate_module_start()
         futures_start = [executor.submit(_start_prometheus_node_exporter, wrapper.connection, start_module, install_dir, silent=silent) for wrapper in connectionwrappers.values()]
-        
         futures_start.append(executor.submit(_start_prometheus_admin, connectionwrappers[admin_picked].connection, start_module, install_dir, reservation, port=prometheus_port, silent=silent))
-        
         futures_start.append(executor.submit(_start_grafana, admin_picked, connectionwrappers[admin_picked].connection, start_module, name=grafana_name, port=grafana_port, image=grafana_image, silent=silent))
 
         if not all(x.result() for x in futures_start):
+            if local_connections:
+                close_wrappers(connectionwrappers)
             return False, None
         prints('Prometheus+Grafana started on all nodes.')
+        if local_connections:
+            close_wrappers(connectionwrappers)
         return True, admin_picked.node_id

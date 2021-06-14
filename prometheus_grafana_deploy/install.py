@@ -5,7 +5,7 @@ import tempfile
 
 import prometheus_grafana_deploy.internal.defaults.install as defaults
 from prometheus_grafana_deploy.internal.remoto.modulegenerator import ModuleGenerator
-from prometheus_grafana_deploy.internal.remoto.util import get_ssh_connection as _get_ssh_connection
+from prometheus_grafana_deploy.internal.remoto.ssh_wrapper import get_wrappers, close_wrappers
 import prometheus_grafana_deploy.internal.util.fs as fs
 import prometheus_grafana_deploy.internal.util.importer as importer
 import prometheus_grafana_deploy.internal.util.location as loc
@@ -75,13 +75,14 @@ def _merge_kwargs(x, y):
     return z
 
 
-def install(reservation, install_dir=defaults.install_dir(), key_path=None, admin_id=None, node_exporter_url=defaults.node_exporter_url(), prometheus_url=defaults.prometheus_url(), grafana_image=defaults.grafana_image(), force_reinstall=False, silent=False, retries=defaults.retries()):
+def install(reservation, install_dir=defaults.install_dir(), key_path=None, admin_id=None, connectionwrappers=None, node_exporter_url=defaults.node_exporter_url(), prometheus_url=defaults.prometheus_url(), grafana_image=defaults.grafana_image(), force_reinstall=False, silent=False, retries=defaults.retries()):
     '''Installs Prometheus on remote cluster.
     Args:
         reservation (`metareserve.Reservation`): Reservation object with all nodes to install Prometheus on.
         install_dir (optional str): Location on remote host to store Prometheus in.
         key_path (optional str): Path to SSH key, which we use to connect to nodes. If `None`, we do not authenticate using an IdentityFile.
         admin_id (optional int): Node id that must become the admin. If `None`, the node with lowest public ip value (string comparison) will be picked.
+        connectionwrappers (optional dict(metareserve.Node, RemotoSSHWrapper)): If set, uses given connections, instead of building new ones.
         node_exporter_url (optional str): Download URL for Prometheus node exporter.
         prometheus_url (optional str): Download URL for Prometheus.
         grafana_image (optonal str): Grafana image to download.
@@ -93,22 +94,32 @@ def install(reservation, install_dir=defaults.install_dir(), key_path=None, admi
         `True, admin_node_id` on success, `False, None` otherwise.'''
     admin_picked, _ = _pick_admin(reservation, admin=admin_id)
     printc('Picked admin node: {}'.format(admin_picked), Color.CAN)
-        
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)+2) as executor:
-        ssh_kwargs = {'IdentitiesOnly': 'yes', 'StrictHostKeyChecking': 'no'}
+    
+    local_connections = connectionwrappers == None
+    if local_connections:
+        ssh_kwargs = {'IdentitiesOnly': 'yes', 'User': admin_picked.extra_info['user'], 'StrictHostKeyChecking': 'no'}
         if key_path:
             ssh_kwargs['IdentityFile'] = key_path
         else:
             printw('Connections have no assigned ssh key. Prepare to fill in your password often.')
-        futures_connection = {x: executor.submit(_get_ssh_connection, x.ip_public, silent=silent, ssh_params=_merge_kwargs(ssh_kwargs, {'User': x.extra_info['user']})) for x in reservation.nodes}
-        connectionwrappers = {k: v.result() for k,v in futures_connection.items()}
-        
+        connectionwrappers = get_wrappers(reservation.nodes, lambda node: node.ip_public, ssh_params=ssh_kwargs, silent=silent)
+    if not all(x.open for x in connectionwrappers.values()):
+        if local_connections:
+            close_wrappers(connectionwrappers)
+        printe('Failed to create at least one connection.')
+        return False, None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(reservation)+2) as executor:
         install_module = _generate_module_install()
         futures_install = [executor.submit(_install_prometheus_node_exporter, wrapper.connection, install_module, install_dir, node_exporter_url=defaults.node_exporter_url(), force_reinstall=force_reinstall, silent=silent, retries=retries) for wrapper in connectionwrappers.values()]
 
         futures_install.append(executor.submit(_install_prometheus_admin, connectionwrappers[admin_picked].connection, install_module, install_dir, prometheus_url=defaults.prometheus_url(), force_reinstall=force_reinstall, silent=silent, retries=retries))
         futures_install.append(executor.submit(_install_grafana, connectionwrappers[admin_picked].connection, install_module, image=grafana_image, force_reinstall=force_reinstall, silent=silent))
         if not all(x.result() for x in futures_install):
+            if local_connections:
+                close_wrappers(connectionwrappers)
             return False, None
     prints('Prometheus+Grafana installed on all nodes.')
+    if local_connections:
+        close_wrappers(connectionwrappers)
     return True, admin_picked.node_id
