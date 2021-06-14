@@ -2,12 +2,12 @@ import concurrent.futures
 import tempfile
 import uuid
 
-from rados_deploy.thirdparty.sshconf import *
+from prometheus_grafana_deploy.thirdparty.sshconf import *
 
 import logging
 import remoto
 
-from rados_deploy.internal.util.printer import *
+from prometheus_grafana_deploy.internal.util.printer import *
 
 
 class RemotoSSHWrapper(object):
