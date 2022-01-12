@@ -36,6 +36,7 @@ In the Grafana UI:
     This tool has the ability to generate dashboards. Use the following command to find out more about a generator named `<generator>`:
 ```bash
 grafana-monitor dash <generator> -- -h
+grafana-monitor --key-path yourkey.pem dash ~/prometheus-grafana-deploy/dashboard_generators/spark_rados.py
 ```
  4. Generated dashboards will have JSON format, which is just what Grafana requires.
 Copy the JSON contents to the JSON import box, and press the corresponding 'Load' button.
