@@ -8,7 +8,7 @@ def install_grafana(image, force_reinstall, silent):
         prints('Acceptable Grafana installation detected.')
         return True
     if not has_docker:
-        if subprocess.call('sudo apt install docker.io -y', **get_subprocess_kwargs(silent)) != 0:
+        if subprocess.call('sudo apt update && sudo apt install docker.io -y', **get_subprocess_kwargs(silent)) != 0:
             printe('Could not install docker.io.')
             return False
     if force_reinstall or not has_grafana:
